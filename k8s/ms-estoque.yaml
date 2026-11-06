@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-estoque
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ms-estoque
+  template:
+    metadata:
+      labels:
+        app: ms-estoque
+    spec:
+      containers:
+        - name: ms-estoque
+          image: ms-estoque:local
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ms-estoque
+                  key: DATABASE_URL
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ms-estoque
+                  key: RABBITMQ_URL
+          readinessProbe:
+            httpGet:
+              path: /estoque
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 6
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 192Mi

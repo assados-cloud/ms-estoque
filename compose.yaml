@@ -1,0 +1,41 @@
+services:
+  postgres-estoque:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: estoquedb
+      POSTGRES_USER: estoque
+      POSTGRES_PASSWORD: estoque-local
+    volumes:
+      - estoque-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "estoque", "-d", "estoquedb"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4.1
+    environment:
+      RABBITMQ_DEFAULT_USER: estoque
+      RABBITMQ_DEFAULT_PASS: rabbitmq-local
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_listener", "5672"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ms-estoque:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://estoque:estoque-local@postgres-estoque:5432/estoquedb
+      RABBITMQ_URL: amqp://estoque:rabbitmq-local@rabbitmq:5672/%2F
+    depends_on:
+      postgres-estoque:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+
+volumes:
+  estoque-data:
